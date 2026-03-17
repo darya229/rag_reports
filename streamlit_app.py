@@ -14,7 +14,7 @@ load_dotenv()
 API_DEEPSEEK=os.getenv("API_DEEPSEEK")
 API_QDRANT=os.getenv("API_QDRANT")
 
-from RAG.retrieve import *
+from retrieve import *
 
 deepseek_llm = ChatDeepSeek(
     model="deepseek-reasoner",
