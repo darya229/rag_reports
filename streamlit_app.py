@@ -246,11 +246,7 @@ with col1:
         with st.chat_message("assistant", avatar=":material/android:"):
             st.write(f"📑 Найдено {len(reranked_snippets_df)} фрагментов")
             
-            # Кнопка для этого конкретного запроса
-            if st.button("Показать найденные фрагменты", key=f"query_btn_{current_query_id}"):
-                st.session_state.current_retrieved_chunks = reranked_snippets_df
-                st.session_state.current_query_text = user_input  # Сохраняем текст запроса
-                st.rerun()
+
         
         # Сохраняем это сообщение в историю с меткой о кнопке
         st.session_state.messages.append({
@@ -294,6 +290,11 @@ with col1:
                 "query_text": user_input,  # Сохраняем текст запроса
                 "is_system": True
             })
+            # Кнопка для этого конкретного запроса
+            if st.button("Показать найденные фрагменты", key=f"query_btn_{current_query_id}"):
+                st.session_state.current_retrieved_chunks = reranked_snippets_df
+                st.session_state.current_query_text = user_input  # Сохраняем текст запроса
+                st.rerun()
         except:
             st.error("Ошибка при работе LLM")
             raise
