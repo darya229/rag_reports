@@ -14,3 +14,4 @@ asyncio
 nest_asyncio
 googletrans
 python-dotenv
+langchain_deepseek
