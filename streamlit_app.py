@@ -18,7 +18,7 @@ from retrieve import *
 
 deepseek_llm = ChatDeepSeek(
     model="deepseek-reasoner",
-    api_key = API_DEEPSEEK,
+    api_key = st.secrets["API_DEEPSEEK"],
     temperature=1,
     max_tokens=8000,
     reasoning_effort="medium",
@@ -31,7 +31,7 @@ def initialize_connections():
     try:
         client_db = QdrantClient(
             url = "http://176.109.105.181:6333/",
-            api_key=API_QDRANT
+            api_key=st.secrets["API_QDRANT"]
 )
         bm25_model = SparseTextEmbedding("Qdrant/bm25")
         dense_model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
