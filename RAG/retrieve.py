@@ -93,36 +93,36 @@ def search_separately(query_text, collection_name, dense_embedding_model, bm25_e
     sparse_vector = next(bm25_embedding_model.query_embed(query_text))
     
     # Поиск по dense векторам
-    dense_results = client.search(
+    dense_results = client.query_points(
         collection_name=collection_name,
-        query_vector=("qwen", dense_vector),
-        with_payload=True,  # возвращать payload с текстом
-        with_vectors=False,  # Не возвращать векторы (только текст и score)
+        query=dense_vector.tolist() if hasattr(dense_vector, 'tolist') else dense_vector,
+        using="qwen",  # указываем имя вектора отдельно
+        with_payload=True,
+        with_vectors=False,
         limit=50
     )
     
     #Добавляем тег типа поиска
-    for i in range(len(dense_results)):
-        dense_results[i].payload['search_type'] = 'Семантический'
+    for point in dense_results.points:
+        point.payload['search_type'] = 'Семантический'
 
     # Поиск по sparse векторам
-    sparse_results = client.search(
-        collection_name=collection_name, 
-        query_vector=models.NamedSparseVector(
-            name="bm25",
-            vector=models.SparseVector(**sparse_vector.as_object())
-        ),
+    sparse_vector_obj = models.SparseVector(**sparse_vector.as_object())
+    sparse_results = client.query_points(
+        collection_name=collection_name,
+        query=sparse_vector_obj,
+        using="bm25",  # указываем имя вектора отдельно
         with_payload=True,
         with_vectors=False,
         limit=50
     )
 
     #Добавляем тег типа поиска
-    for i in range(len(sparse_results)):
-        sparse_results[i].payload['search_type'] = 'Ключевые слова'
+    for point in sparse_results.points:
+        point.payload['search_type'] = 'Ключевые слова'
 
     #
-    return dense_results, sparse_results
+    return dense_results.points, sparse_results.points
 
 
 def rerank_snippets(query_text, dense_results, sparse_results, cross_encoder_model):
