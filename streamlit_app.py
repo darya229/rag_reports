@@ -81,62 +81,9 @@ st.markdown("""
     }
     .st-emotion-cache-yfw52f a {
         color: rgb(29 255 69);
-            
-    /* Скролл для левой колонки - используем более надежные селекторы */
-    div[data-testid="column"]:nth-of-type(1) {
-        height: calc(100vh - 200px) !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        padding-right: 10px !important;
-    }
 
-    /* Скролл для правой колонки */
-    div[data-testid="column"]:nth-of-type(2) {
-        height: calc(100vh - 200px) !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        padding-left: 10px !important;
-        padding-right: 10px !important;
-    }
-
-    /* Чтобы контент внутри колонок тоже правильно отображался */
-    div[data-testid="column"] > div {
-        height: 100% !important;
-        overflow-y: auto !important;
-    }
-
-    /* Фикс для контейнера сообщений в левой колонке */
-    .chat-messages-container {
-        margin-bottom: 100px;
-        height: auto !important;
-    }
-
-    /* Убедимся, что chat_input остается внизу */
-    .stChatInput {
-        position: relative !important;
-        bottom: 0 !important;
-        width: 100% !important;
-        margin-top: 20px !important;
-    }
-
-    /* Стилизация полосы прокрутки */
-    div[data-testid="column"]::-webkit-scrollbar {
-        width: 8px !important;
-    }
-
-    div[data-testid="column"]::-webkit-scrollbar-track {
-        background: #f1f1f1 !important;
-        border-radius: 10px !important;
-    }
-
-    div[data-testid="column"]::-webkit-scrollbar-thumb {
-        background: #888 !important;
-        border-radius: 10px !important;
-    }
-
-    div[data-testid="column"]::-webkit-scrollbar-thumb:hover {
-        background: #555 !important;
-    }
+    .st-emotion-cache-r7ut5z a {
+        color: rgb(0 255 60);
 
 </style>
 """, unsafe_allow_html=True)
@@ -224,6 +171,9 @@ if user_input:
     except:
         st.error("Ошибка при переводе запроса")
         raise
+
+    with st.chat_message("user", avatar=":material/person_pin:"):
+        st.write(user_input_en)
 
     # Сообщение о поиске
     with st.chat_message("assistant", avatar=":material/android:"):
