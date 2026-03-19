@@ -9,13 +9,19 @@ from fastembed import SparseTextEmbedding
 import asyncio
 import nest_asyncio
 from googletrans import Translator
+import yadisk
+import re
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
 API_DEEPSEEK=os.getenv("API_DEEPSEEK")
 API_QDRANT=os.getenv("API_QDRANT")
+API_DISK = os.getenv("API_DISK")
 
 from RAG.retrieve import *
+
+y = yadisk.YaDisk(token=API_DISK)
+
 
 deepseek_llm = ChatDeepSeek(
     model="deepseek-reasoner",
@@ -81,12 +87,67 @@ st.markdown("""
     }
     .st-emotion-cache-yfw52f a {
         color: rgb(29 255 69);
-
-    .st-emotion-cache-r7ut5z a {
-        color: rgb(0 255 60);
+            
 
 </style>
 """, unsafe_allow_html=True)
+
+
+def process_text_with_refs(text, df):
+    """
+    Преобразует текст с ссылками вида [N] или [N,M] в HTML-ссылки
+    
+    Параметры:
+    text (str): Исходный текст с ссылками
+    df (pd.DataFrame): DataFrame с колонками 'Позиция чанка', 'file_name', 'page', 'href'
+    
+    Возвращает:
+    str: Текст с замененными ссылками
+    """
+    
+    # Создаем словарь для быстрого поиска данных по номеру ссылки
+    ref_dict = {}
+    for _, row in df.iterrows():
+        ref_dict[str(int(row["Позиция чанка"]))] = {
+            'href': row["download_link"],
+            'file_name': row['file_name'],
+            'page': int(row['page'])
+        }
+        
+    
+    def replace_ref(match):
+        """Заменяет одну ссылку или несколько ссылок через запятую"""
+        refs_text = match.group(1)  # содержимое внутри [ ]
+        
+        # Разделяем ссылки, если их несколько через запятую
+        ref_numbers = [num.strip() for num in refs_text.split(',')]
+        
+        # Создаем HTML для каждой ссылки
+        html_parts = []
+        for ref_num in ref_numbers:
+            if ref_num in ref_dict:
+                ref_data = ref_dict[ref_num]
+                html = f'<a href="{ref_data["href"]}" class="tooltip-link" title="{ref_data["file_name"]} \n page: {ref_data["page"]} "><sup>[{ref_num}]</sup></a>'
+                html_parts.append(html)
+
+            else:
+                # Если ссылка не найдена в DataFrame, оставляем как есть
+                html_parts.append(f'<sup>[{ref_num}]</sup>')
+
+        
+        # Объединяем все части
+        if len(html_parts) > 1:
+            return ' '.join(html_parts)
+        else:
+            return html_parts[0]
+    
+    # Ищем все вхождения [число] или [число,число]
+    pattern = r'\[([0-9,\s]+)\]'
+    
+    # Заменяем все найденные ссылки
+    processed_text = re.sub(pattern, replace_ref, text)
+    
+    return processed_text
 
 # Инициализация session_state
 if 'query_count' not in st.session_state:
@@ -171,10 +232,8 @@ if user_input:
     except:
         st.error("Ошибка при переводе запроса")
         raise
-
     with st.chat_message("user", avatar=":material/person_pin:"):
         st.write(user_input_en)
-
     # Сообщение о поиске
     with st.chat_message("assistant", avatar=":material/android:"):
         temp_message = st.empty()
@@ -216,16 +275,25 @@ if user_input:
     })
 
     try:
-        answer = deepseek_llm.invoke(
+        answer_raw = deepseek_llm.invoke(
             [
                 SystemMessage(content=df.loc[0, 'Промпт']),
                 HumanMessage(content=df.loc[0, 'Вопрос'])
             ]
         )
-        
+        with st.chat_message("assistant", avatar=":material/android:"):
+            temp_message = st.empty()
+            temp_message.write("⏳ Добавляю ссылки...")
+
+        answer = process_text_with_refs(answer_raw.content, reranked_snippets_df)
+
+        with st.chat_message("assistant", avatar=":material/android:"):
+            temp_message = st.empty()
+            temp_message.write("✅ Ответ готов")
         # Показываем ответ
         with st.chat_message("assistant", avatar=":material/android:"):
-            st.markdown(answer.content, unsafe_allow_html=True)
+            st.markdown(answer, unsafe_allow_html=True)
+
             
             # Добавляем кнопку прямо под ответом
             col1, col2, col3 = st.columns([1, 2, 1])
@@ -239,7 +307,7 @@ if user_input:
         # Сохраняем ответ в историю с меткой, что это ответ с кнопкой
         st.session_state.messages.append({
             "role": "assistant", 
-            "text": answer.content,
+            "text": answer,
             "has_answer": True,  # Отмечаем, что это полноценный ответ с кнопкой
             "query_id": current_query_id,
             "is_system": False
