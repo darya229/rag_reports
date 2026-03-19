@@ -193,14 +193,14 @@ def retriev_chunks(query: str):
     
     ##### подставляем таблицы ########
 
-    files = os.listdir("C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables_jan") #для таблиц
+    files = os.listdir("documents_elements_paddle_tables_jan") #для таблиц
     for snippet in reranked_snippets:
 
         tables = extract_tables(snippet.payload["page_content"])
         if tables:
             doc_filename=snippet.payload["metadata"]["file_name"].replace(".pdf", ".feather")
             if doc_filename in files:
-                doc = pd.read_feather(f"C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables_jan/{doc_filename}")
+                doc = pd.read_feather(f"documents_elements_paddle_tables_jan/{doc_filename}")
                 tables_head_content = doc["table_head_content"].to_list()
                 tables_full_content = doc["element_content"].to_list()
                 for table in tables:
