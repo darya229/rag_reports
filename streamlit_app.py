@@ -14,7 +14,8 @@ import re
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
-API_DEEPSEEK=os.getenv("API_DEEPSEEK")
+API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
+
 
 
 
