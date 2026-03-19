@@ -114,6 +114,8 @@ def process_text_with_refs(text, df):
             'file_name': row['file_name'],
             'page': int(row['page'])+1
         }
+    sources = []
+    check_added_sources = set()
         
     
     def replace_ref(match):
@@ -130,6 +132,7 @@ def process_text_with_refs(text, df):
                 ref_data = ref_dict[ref_num]
                 html = f'<a href="{ref_data["href"]}" class="tooltip-link" title="{ref_data["file_name"]} \n page: {ref_data["page"]} "><sup>[{ref_num}]</sup></a>'
                 html_parts.append(html)
+                check_added_sources.add(int(ref_num))
 
             else:
                 # Если ссылка не найдена в DataFrame, оставляем как есть
@@ -147,8 +150,16 @@ def process_text_with_refs(text, df):
     
     # Заменяем все найденные ссылки
     processed_text = re.sub(pattern, replace_ref, text)
+
+    check_added_sources_list = list(check_added_sources)
+    check_added_sources_list.sort()
+    print(check_added_sources_list)
+    for item in check_added_sources_list:
+        ref_data = ref_dict[str(item)]
+        add_source = f"[{str(item)}] — {ref_data["file_name"]} \n\n"
+        sources.append(add_source)
     
-    return processed_text
+    return processed_text + f"\n\n______\n\n**Источники** \n\n{'\n'.join(sources)}"
 
 # Инициализация session_state
 if 'query_count' not in st.session_state:
