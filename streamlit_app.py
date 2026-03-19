@@ -112,7 +112,7 @@ def process_text_with_refs(text, df):
         ref_dict[str(int(row["Позиция чанка"]))] = {
             'href': row["download_link"],
             'file_name': row['file_name'],
-            'page': int(row['page'])
+            'page': int(row['page'])+1
         }
         
     
