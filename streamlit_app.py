@@ -153,7 +153,6 @@ def process_text_with_refs(text, df):
 
     check_added_sources_list = list(check_added_sources)
     check_added_sources_list.sort()
-    print(check_added_sources_list)
     for item in check_added_sources_list:
         ref_data = ref_dict[str(item)]
         add_source = f"[{str(item)}] — {ref_data["file_name"]} \n\n"
