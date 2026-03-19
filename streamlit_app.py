@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
 API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
+API_QDRANT=st.secrets["API_QDRANT"]
 
 
 
