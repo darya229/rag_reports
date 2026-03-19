@@ -9,9 +9,11 @@ from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from sentence_transformers import CrossEncoder
 from fastembed import SparseTextEmbedding 
+import yadisk
 API_QDRANT=os.getenv("API_QDRANT")
+API_DISK=os.getenv("API_DISK")
 
-
+y = yadisk.YaDisk(token=API_DISK)
 #--------INITIALIZE CONNECTIONS ONCE -----------
 @st.cache_resource(ttl=3600)
 def initialize_connections():
@@ -93,36 +95,36 @@ def search_separately(query_text, collection_name, dense_embedding_model, bm25_e
     sparse_vector = next(bm25_embedding_model.query_embed(query_text))
     
     # Поиск по dense векторам
-    dense_results = client.search(
+    dense_results = client.query_points(
         collection_name=collection_name,
-        query_vector=("qwen", dense_vector),
-        with_payload=True,  # возвращать payload с текстом
-        with_vectors=False,  # Не возвращать векторы (только текст и score)
+        query=dense_vector.tolist() if hasattr(dense_vector, 'tolist') else dense_vector,
+        using="qwen",  # указываем имя вектора отдельно
+        with_payload=True,
+        with_vectors=False,
         limit=50
     )
     
     #Добавляем тег типа поиска
-    for i in range(len(dense_results)):
-        dense_results[i].payload['search_type'] = 'Семантический'
+    for point in dense_results.points:
+        point.payload['search_type'] = 'Семантический'
 
     # Поиск по sparse векторам
-    sparse_results = client.search(
-        collection_name=collection_name, 
-        query_vector=models.NamedSparseVector(
-            name="bm25",
-            vector=models.SparseVector(**sparse_vector.as_object())
-        ),
+    sparse_vector_obj = models.SparseVector(**sparse_vector.as_object())
+    sparse_results = client.query_points(
+        collection_name=collection_name,
+        query=sparse_vector_obj,
+        using="bm25",  # указываем имя вектора отдельно
         with_payload=True,
         with_vectors=False,
         limit=50
     )
 
     #Добавляем тег типа поиска
-    for i in range(len(sparse_results)):
-        sparse_results[i].payload['search_type'] = 'Ключевые слова'
+    for point in sparse_results.points:
+        point.payload['search_type'] = 'Ключевые слова'
 
     #
-    return dense_results, sparse_results
+    return dense_results.points, sparse_results.points
 
 
 def rerank_snippets(query_text, dense_results, sparse_results, cross_encoder_model):
@@ -191,14 +193,14 @@ def retriev_chunks(query: str):
     
     ##### подставляем таблицы ########
 
-    files = os.listdir("documents_elements_paddle_tables_jan") #для таблиц
+    files = os.listdir("C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables_jan") #для таблиц
     for snippet in reranked_snippets:
 
         tables = extract_tables(snippet.payload["page_content"])
         if tables:
             doc_filename=snippet.payload["metadata"]["file_name"].replace(".pdf", ".feather")
             if doc_filename in files:
-                doc = pd.read_feather(f"documents_elements_paddle_tables_jan/{doc_filename}")
+                doc = pd.read_feather(f"C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables_jan/{doc_filename}")
                 tables_head_content = doc["table_head_content"].to_list()
                 tables_full_content = doc["element_content"].to_list()
                 for table in tables:
@@ -230,7 +232,7 @@ def retriev_chunks(query: str):
 
     If the information needed to answer the question is present in the snippets, synthesize an answer based solely on that information.
 
-    Crucially, after every sentence or distinct claim in your answer, you MUST cite the source by appending the relevant snippet reference in angle brackets in this tempalete <a href="#" class="tooltip-link" title="doc_title \n page: page "><sup>5</sup></a> . For example: Answers text <a href="#" class="tooltip-link" title="SocGen_KOREAN TREASURY BONDS - RICH_CHEAP ANALYSIS 29 JANUARY 2026_20260129 \n page 4"><sup>[5]</sup></a>.
+    Crucially, after every sentence or distinct claim in your answer, you MUST cite the source by appending the relevant snippet reference in angle brackets in this tempalete <sup>[5]</sup>. For example: Answers text <sup>[8]</sup>.
 
     If the information to answer the question is not found in any snippet, state clearly: "I cannot answer the question based on the provided snippets."
 
@@ -261,6 +263,12 @@ def retriev_chunks(query: str):
         reranked_snippets_df.loc[k, 'countries'] = str(snippet.payload['metadata']['doc_countries'])
         reranked_snippets_df.loc[k, 'keywords'] = str(snippet.payload['metadata']['doc_keywords'])
         reranked_snippets_df.loc[k, 'page'] = snippet.payload['metadata']['page']
+        if y.check_token():
+
+            reranked_snippets_df.loc[k, 'download_link'] = y.get_meta(f"/Reports 2026 YTD (sep)/{snippet.payload['metadata']['file_name']}").file 
+        else:
+            st.toast("Не удалось подключиться к хранилищу")
+            reranked_snippets_df.loc[k, 'download_link'] = "#"
 
     return df, reranked_snippets_df
 
