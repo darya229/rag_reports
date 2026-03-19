@@ -14,13 +14,13 @@ import re
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
-API_DEEPSEEK=os.getenv("API_DEEPSEEK")
-API_QDRANT=os.getenv("API_QDRANT")
-API_DISK = os.getenv("API_DISK")
+API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
+API_QDRANT=st.secrets["API_QDRANT"]
+
 
 from RAG.retrieve import *
 
-y = yadisk.YaDisk(token=API_DISK)
+
 
 
 deepseek_llm = ChatDeepSeek(
