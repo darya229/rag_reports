@@ -10,9 +10,8 @@ from qdrant_client import QdrantClient
 from sentence_transformers import CrossEncoder
 from fastembed import SparseTextEmbedding 
 import yadisk
-API_QDRANT=os.getenv("API_QDRANT")
-API_DISK=os.getenv("API_DISK")
-
+API_QDRANT=st.secrets["API_QDRANT"]
+API_DISK=st.secrets["API_DISK"]
 y = yadisk.YaDisk(token=API_DISK)
 #--------INITIALIZE CONNECTIONS ONCE -----------
 @st.cache_resource(ttl=3600)
