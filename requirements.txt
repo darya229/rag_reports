@@ -16,3 +16,4 @@ googletrans
 python-dotenv
 langchain_deepseek
 yadisk
+langfuse
