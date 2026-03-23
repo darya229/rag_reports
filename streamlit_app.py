@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain.schema import SystemMessage, HumanMessage
 from langchain_deepseek import ChatDeepSeek
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
@@ -11,6 +12,7 @@ import nest_asyncio
 from googletrans import Translator
 import yadisk
 import re
+from langfuse.langchain import CallbackHandler
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
