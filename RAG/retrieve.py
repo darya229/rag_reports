@@ -2,6 +2,7 @@ import re
 import ast
 import streamlit as st
 import os
+from langchain_core.tools import tool
 import pandas as pd
 from qdrant_client.models import models
 import numpy as np
@@ -34,6 +35,8 @@ def initialize_connections():
 
 # Инициализируем подключения через cache_resource
 client, bm25_model, dense_model, cross_encoder_model = initialize_connections()
+if "work_on_query" not in st.session_state:
+    st.session_state.work_on_query = 0
 
 # Сохраняем в session_state для доступа из всех страниц
 if client is not None:
@@ -184,7 +187,17 @@ def hybrid_rerank_search(query_text, dense_embedding_model, bm25_embedding_model
     return reranked_snippets
 
 
-def retriev_chunks(query: str):
+reranked_snippets_df = pd.DataFrame()
+current_reranked_idx = 0
+def reset_data():
+    global reranked_snippets_df, current_reranked_idx
+    print("Сброс переменных")
+    reranked_snippets_df = pd.DataFrame()
+    current_reranked_idx = 0
+    return reranked_snippets_df, current_reranked_idx
+def retrieve_chunks(query: str):
+    global reranked_snippets_df, current_reranked_idx
+    print(f"retrieve_chunks | reranked_snippets_df -- {reranked_snippets_df.shape} | current_reranked_idx -- {current_reranked_idx}")
     all_snippets = []
     df = pd.DataFrame()
     reranked_snippets = hybrid_rerank_search(query_text=query,
@@ -193,14 +206,14 @@ def retriev_chunks(query: str):
     
     ##### подставляем таблицы ########
 
-    files = os.listdir("documents_elements_paddle_tables_jan") #для таблиц
+    files = os.listdir("C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables_jan") #для таблиц
     for snippet in reranked_snippets:
 
         tables = extract_tables(snippet.payload["page_content"])
         if tables:
             doc_filename=snippet.payload["metadata"]["file_name"].replace(".pdf", ".feather")
             if doc_filename in files:
-                doc = pd.read_feather(f"documents_elements_paddle_tables_jan/{doc_filename}")
+                doc = pd.read_feather(f"C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables_jan/{doc_filename}")
                 tables_head_content = doc["table_head_content"].to_list()
                 tables_full_content = doc["element_content"].to_list()
                 for table in tables:
@@ -213,10 +226,10 @@ def retriev_chunks(query: str):
                         pass
 
     ##### подставляем таблицы ########
-    rerank_snippets_active = reranked_snippets[:15]
+    rerank_snippets_active = reranked_snippets[:5]
     all_snippets.append(reranked_snippets)
     context = "\n".join([
-        f"<snippet {idx + 1}> {item.payload['page_content']} \n doc_title: {item.payload["metadata"]["file_name"]} \n page: {item.payload["metadata"]["page"]}</snippet {idx + 1}>"
+        f"<snippet {idx + current_reranked_idx + 1}> {item.payload['page_content']} \n doc_title: {item.payload["metadata"]["file_name"]} \n page: {item.payload["metadata"]["page"]}</snippet {idx + current_reranked_idx + 1}>"
         for idx, item in enumerate(rerank_snippets_active)
         if item.payload and 'page_content' in item.payload and item.payload['page_content']
     ])
@@ -249,25 +262,29 @@ def retriev_chunks(query: str):
 
 
 #таблица для отрисовки
-    reranked_snippets_df = pd.DataFrame()
+    
     for k, snippet in enumerate(rerank_snippets_active):
         # print(k)
-        reranked_snippets_df.loc[k, 'Позиция чанка'] = k+1
-        reranked_snippets_df.loc[k, 'id'] = snippet.id
+        reranked_snippets_df.loc[current_reranked_idx, 'Позиция чанка'] = current_reranked_idx+1
+        reranked_snippets_df.loc[current_reranked_idx, 'id'] = snippet.id
         # reranked_snippets_df.loc[k, 'rerank_score'] = snippet.payload['rerank_score']
-        reranked_snippets_df.loc[k, 'page_content'] = snippet.payload['page_content']
-        reranked_snippets_df.loc[k, 'file_name'] = snippet.payload['metadata']['file_name']
-        reranked_snippets_df.loc[k, 'page'] = snippet.payload['metadata']['page']
-        reranked_snippets_df.loc[k, 'prime_category'] = snippet.payload['metadata']['category']
-        reranked_snippets_df.loc[k, 'region'] = snippet.payload['metadata']['doc_region']
-        reranked_snippets_df.loc[k, 'countries'] = str(snippet.payload['metadata']['doc_countries'])
-        reranked_snippets_df.loc[k, 'keywords'] = str(snippet.payload['metadata']['doc_keywords'])
-        reranked_snippets_df.loc[k, 'page'] = snippet.payload['metadata']['page']
+        reranked_snippets_df.loc[current_reranked_idx, 'page_content'] = snippet.payload['page_content']
+        reranked_snippets_df.loc[current_reranked_idx, 'file_name'] = snippet.payload['metadata']['file_name']
+        reranked_snippets_df.loc[current_reranked_idx, 'page'] = snippet.payload['metadata']['page']
+        reranked_snippets_df.loc[current_reranked_idx, 'prime_category'] = snippet.payload['metadata']['category']
+        reranked_snippets_df.loc[current_reranked_idx, 'region'] = snippet.payload['metadata']['doc_region']
+        reranked_snippets_df.loc[current_reranked_idx, 'countries'] = str(snippet.payload['metadata']['doc_countries'])
+        reranked_snippets_df.loc[current_reranked_idx, 'keywords'] = str(snippet.payload['metadata']['doc_keywords'])
+        reranked_snippets_df.loc[current_reranked_idx, 'page'] = snippet.payload['metadata']['page']
         try:
-            reranked_snippets_df.loc[k, 'download_link'] = y.get_meta(f"/Reports 2026 YTD (sep)/{snippet.payload['metadata']['file_name']}").file 
+            reranked_snippets_df.loc[current_reranked_idx, 'download_link'] = y.get_meta(f"/Reports 2026 YTD (sep)/{snippet.payload['metadata']['file_name']}").file 
         except Exception as e:
             st.toast(f"Ошибка при поиске в хранилище | {snippet.payload['metadata']['file_name']}")
-            reranked_snippets_df.loc[k, 'download_link'] = "#"
-
+            reranked_snippets_df.loc[current_reranked_idx, 'download_link'] = "#"
+        current_reranked_idx +=1
+    print(f"reranked_snippets_df shape: {reranked_snippets_df.shape}")
     return df, reranked_snippets_df
+
+
+
 
