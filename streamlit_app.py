@@ -1,7 +1,8 @@
 import streamlit as st
 import os
+from langchain.agents import create_agent
+from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
-# from langchain.schema import SystemMessage, HumanMessage
 from langchain_deepseek import ChatDeepSeek
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
@@ -13,22 +14,18 @@ from googletrans import Translator
 import yadisk
 import re
 from langfuse.langchain import CallbackHandler
+from langchain.agents.middleware import ToolCallLimitMiddleware
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
-API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
-API_QDRANT=st.secrets["API_QDRANT"]
-LANGFUSE_SECRET_KEY = st.secrets["LANGFUSE_SECRET_KEY"]
-LANGFUSE_PUBLIC_KEY = st.secrets["LANGFUSE_PUBLIC_KEY"]
-LANGFUSE_BASE_URL = st.secrets["LANGFUSE_BASE_URL"]
-
-
-langfuse_handler = CallbackHandler()
-
+API_DEEPSEEK=os.getenv("API_DEEPSEEK")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL")
 
 from RAG.retrieve import *
 
-
+langfuse_handler = CallbackHandler()
 
 deepseek_llm = ChatDeepSeek(
     model="deepseek-reasoner",
@@ -36,6 +33,13 @@ deepseek_llm = ChatDeepSeek(
     temperature=1,
     max_tokens=8000,
     reasoning_effort="medium",
+)
+
+
+deepseek_llm_assistant = ChatDeepSeek(
+    model="deepseek-chat",
+    api_key=API_DEEPSEEK,
+    temperature=0.5,
 )
 
 @st.dialog('Найденные фрагменты')
@@ -49,7 +53,8 @@ def initialize_connections():
     try:
         client_db = QdrantClient(
             url = "http://176.109.105.181:6333/",
-            api_key=API_QDRANT
+            api_key=API_QDRANT,
+            timeout=300
 )
         bm25_model = SparseTextEmbedding("Qdrant/bm25")
         dense_model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
@@ -182,6 +187,27 @@ if 'show_dialog' not in st.session_state:
 if 'dialog_query_id' not in st.session_state:
     st.session_state.dialog_query_id = None
 
+@tool
+def rag(user_query: str):
+    """RAG. Поиск информации в векторной базе данных и подготовка ответа с помощью LLM. RAG лучше всего ищет один конкретный вопрос для одной сущности."""
+    print("Включилась функция RAG.")
+    print(f"QUERY: {user_query} \n")
+    st.toast(f"🔎 Ищу информацию по запросу: {user_query}")
+
+    retrieve_result = retrieve_chunks(query = user_query)
+    llm_response= deepseek_llm_assistant.invoke(
+    [
+        HumanMessage(content=retrieve_result[0].loc[0, "Промпт"])
+    ])
+    print(f"QUERY: {user_query} \n\nRESPONSE: {llm_response.content}\n\n")
+    return llm_response.content
+
+tool_limit_middleware = ToolCallLimitMiddleware(
+    tool_name="rag",  # Укажите имя нужного инструмента
+    run_limit=3,  # Не более 3 вызовов за один запуск
+    exit_behavior="continue"  # Как себя вести при превышении лимита
+)
+
 st.title('📚 База знаний')
 st.subheader("Ответ LLM")
 
@@ -189,7 +215,7 @@ st.subheader("Ответ LLM")
 for i, message in enumerate(st.session_state.messages):
     # Определяем аватар в зависимости от роли :material/android:
     if message["role"] == "assistant" and message.get("is_system", False):
-        avatar = ":material/priority_high:"  # Для системных сообщений ассистента
+        avatar = ":material/android:"  # Для системных сообщений ассистента
     elif message["role"] == "assistant":
         avatar = ":material/android:"  # Для обычных сообщений ассистента
     elif message["role"] == "user":
@@ -201,16 +227,6 @@ for i, message in enumerate(st.session_state.messages):
         if 'text' in message:
             st.markdown(message['text'], unsafe_allow_html=True)
         
-        # Добавляем кнопку для каждого сообщения ассистента с ответом
-        if message['role'] == 'assistant' and message.get('has_answer', False):
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                button_key = f"show_chunks_btn_{message.get('query_id', i)}"
-                if st.button('📑 Найденные фрагменты', key=button_key, use_container_width=True):
-                    # Устанавливаем флаги для показа диалога
-                    st.session_state.show_dialog = True
-                    st.session_state.dialog_query_id = message.get('query_id')
-                    # Не используем rerun() здесь
 
 # Обработка диалога
 if st.session_state.show_dialog and st.session_state.dialog_query_id is not None:
@@ -222,10 +238,7 @@ if st.session_state.show_dialog and st.session_state.dialog_query_id is not None
             if msg.get('query_id') == st.session_state.dialog_query_id and msg.get('role') == 'user':
                 st.session_state.current_query_text = msg.get('text', '')
                 break
-        
-        # Показываем диалог
-        show_chunks_form()
-        
+
         # Сбрасываем флаги после показа диалога
         # Важно: это должно быть после вызова show_chunks_form()
         st.session_state.show_dialog = False
@@ -254,56 +267,59 @@ if user_input:
     # Сообщение о поиске
     with st.chat_message("assistant", avatar=":material/android:"):
         temp_message = st.empty()
-        temp_message.write("⏳ Поиск информации в базе")
+        temp_message.write("🔨 Работаю над запросом...")    
+
+    system_prompt = """
+    You are a smart assistant who provides answers only by using the RAG system. The RAG system is designed to answer simple, specific questions about a single topic or fact.
+
+    Key rules for using the RAG system:
+
+    1. **Decompose complex queries** — When a user asks a question that involves multiple entities, comparisons, or distinct topics, break it down into separate, simple questions. Each question should be answerable independently by the RAG system.
     
-    # Здесь ваша функция retriev_chunks
+    Example: User asks: "Who had higher revenue in 2025: NVIDIA or AMD?"
+    Decompose into:
+    - "Revenue 2025 NVIDIA"
+    - "Revenue 2025 AMD"
+
+    2. **Formulate queries for vector search** — RAG queries should be concise, factual, and structured as simple noun phrases or short questions that focus on the key entities and attributes. Avoid conversational language, pronouns, or complex syntax. Use a consistent format: [Attribute] + [Entity] + [Year/Context].
+    
+    Example: User asks: "What was NVIDIA's revenue in 2024?"
+    RAG query: "Revenue NVIDIA 2024"
+    
+    Example: User asks: "What happened in Venezuela in January 2026? Tell me a gold forecast for 2026 year."
+    Decompose into:
+    - "What happened in Venezuela January 2026"
+    - "Gold forecast 2026"
+
+    3. **Preserve citations** — Each RAG response contains citations formatted as <sup>#</sup> (e.g., <sup>1</sup>, <sup>2</sup>) that reference source documents. When synthesizing information from multiple RAG queries into your final answer, you MUST preserve all citations exactly as they appear. Never remove, alter, or separate citations from the facts they support. Keep them in the same <sup>#</sup> format.
+    
+    Critical: If a piece of information comes with a citation, that citation must remain attached to that information in your final answer. Citations are essential for traceability and credibility.
+
+    4. **One fact per query** — Each RAG query should seek a single piece of information. Do not combine multiple facts or comparisons into one query.
+
+    5. **Synthesize with citations intact** — After retrieving results from all decomposed queries, combine the information into a cohesive answer. Ensure that every fact retains its original citation markers. If information is missing from any query, state what could not be found while preserving citations from the information you did receive.
+
+    Remember: The RAG system performs best with clear, atomic, fact-oriented queries. Citations are non-negotiable — they must survive your summarization unchanged.
+    """
+    tools = [rag]
     try:
-        df, reranked_snippets_df = retriev_chunks(query=user_input_en)
-    except:
-        st.error("Ошибка при работе базы данных")
-        raise
+        agent = create_agent(
+            model = deepseek_llm_assistant,
+            tools = tools,
+            system_prompt=system_prompt,
+            middleware=[tool_limit_middleware]
+            # state_schema=State
+    )
 
-    # Сохраняем информацию о запросе
-    st.session_state.query_info[f"query_{current_query_id}"] = reranked_snippets_df
 
-    # Сообщение о найденных фрагментах
-    with st.chat_message("assistant", avatar=":material/android:"):
-        st.write(f"📑 Найдено {len(reranked_snippets_df)} фрагментов")
-    
-    # Сохраняем системное сообщение о найденных фрагментах
-    st.session_state.messages.append({
-        "role": "assistant", 
-        "text": f"📑 Найдено {len(reranked_snippets_df)} фрагментов",
-        "is_system": True,
-        "query_id": current_query_id
-    })
-    
-    # Сообщение о подготовке ответа
-    with st.chat_message("assistant", avatar=":material/android:"):
-        temp_message = st.empty()
-        temp_message.write("⏳ Подготовка ответа...")
-    
-    # Сохраняем сообщение о подготовке ответа
-    st.session_state.messages.append({
-        "role": "assistant", 
-        "text": "⏳ Подготовка ответа...",
-        "is_system": True,
-        "query_id": current_query_id
-    })
-
-    try:
-        answer_raw = deepseek_llm.invoke(
-            [
-                SystemMessage(content=df.loc[0, 'Промпт']),
-                HumanMessage(content=df.loc[0, 'Вопрос'])
-            ],
-            config={"callbacks": [langfuse_handler]}
-        )
+        answer_raw = agent.invoke(input={
+            "messages": [HumanMessage(user_input_en)]
+            }, config={"callbacks": [langfuse_handler]})
         with st.chat_message("assistant", avatar=":material/android:"):
             temp_message = st.empty()
             temp_message.write("⏳ Добавляю ссылки...")
 
-        answer = process_text_with_refs(answer_raw.content, reranked_snippets_df)
+        answer = process_text_with_refs(answer_raw["messages"][-1].content, reranked_snippets_df)
 
         with st.chat_message("assistant", avatar=":material/android:"):
             temp_message = st.empty()
@@ -311,16 +327,8 @@ if user_input:
         # Показываем ответ
         with st.chat_message("assistant", avatar=":material/android:"):
             st.markdown(answer, unsafe_allow_html=True)
+        reset_data()
 
-            
-            # Добавляем кнопку прямо под ответом
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                if st.button('📑 Найденные фрагменты', key=f"current_answer_btn_{current_query_id}", use_container_width=True):
-                    # Устанавливаем флаги для показа диалога
-                    st.session_state.show_dialog = True
-                    st.session_state.dialog_query_id = current_query_id
-                    # Не используем rerun() здесь
 
         # Сохраняем ответ в историю с меткой, что это ответ с кнопкой
         st.session_state.messages.append({
