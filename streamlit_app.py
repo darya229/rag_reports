@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain.schema import SystemMessage, HumanMessage
+# from langchain.schema import SystemMessage, HumanMessage
 from langchain_deepseek import ChatDeepSeek
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
