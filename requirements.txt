@@ -17,3 +17,4 @@ python-dotenv
 langchain_deepseek
 yadisk
 langfuse
+langchain
