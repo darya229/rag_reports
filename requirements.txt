@@ -18,3 +18,4 @@ langchain_deepseek
 yadisk
 langfuse
 langchain
+torchvision
