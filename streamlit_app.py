@@ -17,11 +17,12 @@ from langfuse.langchain import CallbackHandler
 from langchain.agents.middleware import ToolCallLimitMiddleware
 from dotenv import load_dotenv
 load_dotenv()
-# from forms.show_chunks import show_chunks
-API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
-LANGFUSE_SECRET_KEY = st.secrets["LANGFUSE_SECRET_KEY"]
-LANGFUSE_PUBLIC_KEY = st.secrets["LANGFUSE_PUBLIC_KEY"]
-LANGFUSE_BASE_URL = st.secrets["LANGFUSE_BASE_URL"]
+from forms.show_chunks import show_chunks
+API_QDRANT =  os.getenv("API_QDRANT")
+API_DEEPSEEK=os.getenv("API_DEEPSEEK")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL")
 
 from RAG.retrieve import *
 
@@ -54,7 +55,8 @@ def initialize_connections():
         client_db = QdrantClient(
             url = "http://176.109.105.181:6333/",
             api_key=API_QDRANT,
-            timeout=300
+            timeout=300,
+            check_compatibility=False
 )
         bm25_model = SparseTextEmbedding("Qdrant/bm25")
         dense_model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
@@ -186,25 +188,132 @@ if 'show_dialog' not in st.session_state:
     st.session_state.show_dialog = False
 if 'dialog_query_id' not in st.session_state:
     st.session_state.dialog_query_id = None
+@tool
+def rag(user_query: str,
+        quartel_filter:str | None=None,
+        month_filter: str | None=None,
+        year_filter: str | None=None,
+        category_filter: str | None=None,
+        company_filter: str | None=None,
+        filename_filter:str | None=None):
+    """RAG. Searching for information in a vector database and preparing a response using LLM. RAG is best suited for searching one specific question for one entity.
+        Perform semantic (dense) and keyword (sparse) search with filtering support.
+        
+        This function executes two types of search simultaneously:
+        1. Semantic search using dense embeddings (Qwen model) - finds documents by meaning
+        2. Keyword search using sparse embeddings (BM25) - finds documents by exact/partial word matching
+        
+        The filters use logical AND for date/time conditions (must) and logical OR for 
+        category/company/filename conditions (should). This means:
+        - Date filters (quarter, month, year) are combined with AND
+        - Category, company, and filename filters are combined with OR
+        - Date filters AND (category OR company OR filename)
+        
+        Parameters
+        ----------
+        user_query : str
+            Search query text
+        quartel_filter : str | None, optional
+            Filter by quarter in format: 'XQYYYY' where X=1-4 (quarter number), YYYY=4-digit year
+            Example: '1Q2026' (first quarter of 2026), '2Q2025' (second quarter of 2025)
+        month_filter : str | None, optional
+            Filter by month in format: 'M-YYYY' where M=1-12 (month number without leading zero), 
+            YYYY=4-digit year
+            Example: '1-2026' (January 2026), '12-2025' (December 2025)
+            Note: Month should be 1-12, year must be between 2025-2026
+        year_filter : str | None, optional
+            Filter by year in format: 'YYYY' where YYYY=4-digit year
+            Example: '2025', '2026'
+            Note: Only years 2025-2026 are supported
+        category_filter : str | None, optional
+            Filter by category (exact match). Available categories:
+            'Transport and Mechanical Engineering', 'Retail Trade', 'Pharmaceuticals', 
+            'Cryptocurrency Market', 'TMT', 'Electric Power Industry', 'Oil and Gas', 
+            'Currency Market', 'Real Estate', 'Food Industry', 'Chemical Industry',
+            'Metals', 'Infrastructure and Utilities', 'Economy', 'Geopolitics', 'Other', 
+            'Agriculture', 'Coal', 'Finance', 'Fintech', 'Automotive industry'
+        company_filter : str | None, optional
+            Filter by company name (partial/text match, not exact). Uses fuzzy matching.
+            Example: 'нефть' will match 'Роснефть', 'Транснефть', etc.
+        filename_filter : str | None, optional
+            Filter by filename (exact match)
+    
+    
+    """
+    def check_year(year:int):
+        if year <= 2023 or year >= 2027:
+            return f"Значение года выходит за диапазон базы. Ожидается год в промежутке от 2025 до 2026 включительно Получено: {year}"
+        
+
+    #Проверяем фильтры
+    available_categories = ["Transport and Mechanical Engineering", "Retail Trade", "Pharmaceuticals", "Cryptocurrency Market", "TMT",
+                            "Electric Power Industry", "Oil and Gas", "Currency Market", "Real Estate", "Food Industry", "Chemical Industry",
+                            "Metals", "Infrastructure and Utilities", "Economy", "Geopolitics", "Other", "Agriculture", "Coal", "Finance",
+                            "Fintech", "Automotive industry"]
+    if quartel_filter:
+        pattern_quartel = r'^([1-4])Q(\d{4})$'
+        match = re.match(pattern_quartel, quartel_filter)
+        
+        if not match:
+            return f"Неверный формат квартала. Ожидается 'XQYYYY', где X=1-4, YYYY=год. Получено: {quartel_filter}"
+        
+        quarter = int(match.group(1))
+        year = int(match.group(2))
+        check_year(year)
+
+    
+    if month_filter:
+        pattern_month = r'^([1-9]|1[0-2])-(\d{4})$'
+        match_month = re.match(pattern_month, month_filter)
+        if not match_month:
+            return f"Неверный формат: '{month_filter}'. Ожидается формат 'M-YYYY', где M = 1-12, YYYY = 4-значный год (например, '1-2026')"
+        month = int(match_month.group(1))
+
+        year_month_filter = int(match_month.group(2))
+
+        check_year(year_month_filter)
+        if month not in [10, 11, 12]:
+            month = "0" + str(month)
+
+    if year_filter:
+        pattern_year = r'^\d{4}$'
+        year_match = re.match(pattern_year, str(year_filter))
+        
+        if not year_match:
+            return f"Неверный формат года. Ожидается 'YYYY', YYYY=год. Получено: {year_filter}"
+        #проверяем, что год в диапазоне 2024-2026
+        year_year_filter = int(year_match.group(0))
+        check_year(year_year_filter)
+
+    if category_filter:
+        if category_filter not in available_categories:
+            return f"""Такой категории нет в базе. Ожидаются категории: ["Transport and Mechanical Engineering", "Retail Trade", "Pharmaceuticals", "Cryptocurrency Market", "TMT", "Electric Power Industry", "Oil and Gas", "Currency Market", "Real Estate", "Food Industry", "Chemical Industry", Metals", "Infrastructure and Utilities", "Economy", "Geopolitics", "Other", "Agriculture", "Coal", "Finance", "Fintech", "Automotive industry"]. Получено: {category_filter}"""
+
+    retrieve_result = retrieve_chunks(query = user_query,
+                                      quartel_filter=quartel_filter,
+                                      month_filter=month_filter,
+                                      year_filter=year_filter,
+                                      category_filter=category_filter,
+                                      company_filter=company_filter,
+                                      filename_filter=filename_filter)
+    if not isinstance(retrieve_result, pd.DataFrame):
+        return "Nothing found"
+    
+    else:
+        llm_response= deepseek_llm.invoke(
+        [
+            HumanMessage(content=retrieve_result.loc[0, "Промпт"])
+        ])
+        return llm_response.content
 
 @tool
-def rag(user_query: str):
-    """RAG. Поиск информации в векторной базе данных и подготовка ответа с помощью LLM. RAG лучше всего ищет один конкретный вопрос для одной сущности."""
-    print("Включилась функция RAG.")
-    print(f"QUERY: {user_query} \n")
-    st.toast(f"🔎 Ищу информацию по запросу: {user_query}")
-
-    retrieve_result = retrieve_chunks(query = user_query)
-    llm_response= deepseek_llm_assistant.invoke(
-    [
-        HumanMessage(content=retrieve_result[0].loc[0, "Промпт"])
-    ])
-    print(f"QUERY: {user_query} \n\nRESPONSE: {llm_response.content}\n\n")
-    return llm_response.content
+def current_date():
+    """This function shows a current date in format &Y-&m-&d"""
+    return datetime.now().strftime("%Y-%m-%d")
 
 tool_limit_middleware = ToolCallLimitMiddleware(
     tool_name="rag",  # Укажите имя нужного инструмента
-    run_limit=3,  # Не более 3 вызовов за один запуск
+    run_limit=5,  # Не более 3 вызовов за один запуск
     exit_behavior="continue"  # Как себя вести при превышении лимита
 )
 
@@ -300,8 +409,9 @@ if user_input:
     5. **Synthesize with citations intact** — After retrieving results from all decomposed queries, combine the information into a cohesive answer. Ensure that every fact retains its original citation markers. If information is missing from any query, state what could not be found while preserving citations from the information you did receive.
 
     Remember: The RAG system performs best with clear, atomic, fact-oriented queries. Citations are non-negotiable — they must survive your summarization unchanged.
+    If user's query depend on time, but you don't know a current date (for example he asks about last month events), you can use current_date tool, that shows a current date.
     """
-    tools = [rag]
+    tools = [rag,current_date]
     try:
         agent = create_agent(
             model = deepseek_llm_assistant,
