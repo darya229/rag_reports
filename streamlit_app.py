@@ -91,7 +91,7 @@ async def translate_text(text):
 
 st.set_page_config(layout='wide',
                   page_title="RAG-search",
-                  page_icon = "🔍")
+                  page_icon = "📚")
 
 
 
