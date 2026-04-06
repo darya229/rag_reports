@@ -351,15 +351,15 @@ hide_streamlit_style = """
                 height: 0%;
                 position: fixed;
                 }
-                div[data-testid="stDecoration"] {
-                visibility: hidden;
-                height: 0%;
-                position: fixed;
-                }
-                #MainMenu {
-                visibility: hidden;
-                height: 0%;
-                }
+                # div[data-testid="stDecoration"] {
+                # visibility: hidden;
+                # height: 0%;
+                # position: fixed;
+                # }
+                # #MainMenu {
+                # visibility: hidden;
+                # height: 0%;
+                # }
 
                 </style>
                 """
