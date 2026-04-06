@@ -337,6 +337,16 @@ tool_limit_middleware = ToolCallLimitMiddleware(
 
 st.subheader("❗️ база данных содержит 6275 документов за период 01.01.2026 — 01.03.2026")
 
+hide_streamlit_style = """
+                <style>
+                footer {
+                visibility: hidden;
+                height: 0%;
+                }
+                </style>
+                """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Выводим историю сообщений
 for i, message in enumerate(st.session_state.messages):
     # Определяем аватар в зависимости от роли :material/android:
