@@ -346,6 +346,9 @@ hide_streamlit_style = """
                 visibility: hidden;
                 height: 0%;
                 }
+                div[data-testid="stToolbar"] button {
+                    display: none;
+                }
                 # div[data-testid="stToolbar"] {
                 # visibility: hidden;
                 # height: 0%;
@@ -356,10 +359,10 @@ hide_streamlit_style = """
                 # height: 0%;
                 # position: fixed;
                 # }
-                #MainMenu {
-                visibility: hidden;
-                height: 0%;
-                }
+                # #MainMenu {
+                # visibility: hidden;
+                # height: 0%;
+                # }
 
                 </style>
                 """
