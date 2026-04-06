@@ -13,9 +13,9 @@ from fastembed import SparseTextEmbedding
 import yadisk
 from qdrant_client.http.models import Filter, FieldCondition, Range, DatetimeRange, MatchText
 from datetime import datetime
-API_QDRANT=os.getenv("API_QDRANT")
-API_DISK=os.getenv("MY_YA_DISK")
-API_QDRANT =  os.getenv("API_QDRANT")
+API_QDRANT=st.secrets["API_QDRANT"]
+API_DISK=st.secrets["MY_YA_DISK"]
+API_QDRANT =  st.secrets["API_QDRANT"]
 
 y = yadisk.YaDisk(token=API_DISK)
 #--------INITIALIZE CONNECTIONS ONCE -----------
@@ -368,14 +368,14 @@ def retrieve_chunks(query: str,
     
         ##### подставляем таблицы ########
 
-        files = os.listdir("C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables") #для таблиц
+        files = os.listdir("documents_elements_paddle_tables") #для таблиц
         for snippet in reranked_snippets:
 
             tables = extract_tables(snippet.payload["page_content"])
             if tables:
                 doc_filename=snippet.payload["metadata"]["file_name"].replace(".pdf", ".feather")
                 if doc_filename in files:
-                    doc = pd.read_feather(f"C:/Users/Chill Out/Documents/SSS/ТестированиеRAG/documents_elements_paddle_tables/{doc_filename}")
+                    doc = pd.read_feather(f"documents_elements_paddle_tables/{doc_filename}")
                     tables_head_content = doc["table_head_content"].to_list()
                     tables_full_content = doc["element_content"].to_list()
                     for table in tables:
