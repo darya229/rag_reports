@@ -346,6 +346,10 @@ hide_streamlit_style = """
                 visibility: hidden;
                 height: 0%;
                 }
+                header {
+                visibility: hidden;
+                height: 0%;
+                }
                 </style>
                 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
