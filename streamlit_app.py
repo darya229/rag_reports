@@ -18,11 +18,12 @@ from langchain.agents.middleware import ToolCallLimitMiddleware
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
-API_QDRANT =  st.secrets["API_QDRANT"]
-API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
-LANGFUSE_SECRET_KEY = st.secrets["LANGFUSE_SECRET_KEY"]
-LANGFUSE_PUBLIC_KEY = st.secrets["LANGFUSE_PUBLIC_KEY"]
-LANGFUSE_BASE_URL = st.secrets["LANGFUSE_BASE_URL"]
+API_QDRANT =  os.getenv("API_QDRANT")
+API_DEEPSEEK=os.getenv("API_DEEPSEEK")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL")
+API_DISK=os.getenv("MY_YA_DISK")
 
 from RAG.retrieve import *
 
@@ -89,6 +90,13 @@ async def translate_text(text):
          return result.text
 
 st.set_page_config(layout='wide')
+
+
+LOGO_URL_LARGE = "logo_edited.png"
+st.logo(
+    LOGO_URL_LARGE,
+    size="large"
+)
 
 # Добавляем CSS для фиксации chat_input внизу
 st.markdown("""
@@ -166,9 +174,19 @@ def process_text_with_refs(text, df):
 
     check_added_sources_list = list(check_added_sources)
     check_added_sources_list.sort()
+    doc_to_refs = {}
     for item in check_added_sources_list:
         ref_data = ref_dict[str(item)]
-        add_source = f"[{str(item)}] — {ref_data["file_name"]} \n\n"
+        doc_key = ref_data["file_name"]
+        if doc_key not in doc_to_refs:
+            doc_to_refs[doc_key] = []
+        doc_to_refs[doc_key].append(item)
+    
+    # Формируем строки источников с группировкой
+    for doc_name, ref_nums in doc_to_refs.items():
+        ref_nums.sort()
+        refs_str = '], ['.join(str(num) for num in ref_nums)
+        add_source = f"[{refs_str}] — {doc_name}\n\n"
         sources.append(add_source)
     
     return processed_text + f"\n\n______\n\n**Источники** \n\n{'\n'.join(sources)}"
@@ -317,8 +335,7 @@ tool_limit_middleware = ToolCallLimitMiddleware(
     exit_behavior="continue"  # Как себя вести при превышении лимита
 )
 
-st.title('📚 База знаний')
-st.subheader("Ответ LLM")
+st.subheader("❗️ база данных содержит 6275 документов за период 01.01.2026 — 01.03.2026")
 
 # Выводим историю сообщений
 for i, message in enumerate(st.session_state.messages):
