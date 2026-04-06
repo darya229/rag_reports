@@ -93,10 +93,6 @@ st.set_page_config(layout='wide',
                   page_title="RAG-search",
                   page_icon = ":magnifying-glass:")
 
-st.set_page_config(
-    page_title="Моё приложение",
-    page_icon="📊"  # опционально: иконка во вкладке
-)
 
 
 LOGO_URL_LARGE = "logo_edited.png"
