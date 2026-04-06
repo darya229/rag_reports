@@ -18,12 +18,12 @@ from langchain.agents.middleware import ToolCallLimitMiddleware
 from dotenv import load_dotenv
 load_dotenv()
 from forms.show_chunks import show_chunks
-API_QDRANT =  os.getenv("API_QDRANT")
-API_DEEPSEEK=os.getenv("API_DEEPSEEK")
-LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
-LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
-LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL")
-API_DISK=os.getenv("MY_YA_DISK")
+API_QDRANT =  st.secrets["API_QDRANT"]
+API_DEEPSEEK=st.secrets["API_DEEPSEEK"]
+LANGFUSE_SECRET_KEY = st.secrets["LANGFUSE_SECRET_KEY"]
+LANGFUSE_PUBLIC_KEY = st.secrets["LANGFUSE_PUBLIC_KEY"]
+LANGFUSE_BASE_URL = st.secrets["LANGFUSE_BASE_URL"]
+API_DISK=st.secrets["API_DISK"]
 
 from RAG.retrieve import *
 
