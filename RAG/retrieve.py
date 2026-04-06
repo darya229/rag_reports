@@ -14,7 +14,7 @@ import yadisk
 from qdrant_client.http.models import Filter, FieldCondition, Range, DatetimeRange, MatchText
 from datetime import datetime
 API_QDRANT=st.secrets["API_QDRANT"]
-API_DISK=st.secrets["MY_YA_DISK"]
+API_DISK=st.secrets["API_DISK"]
 API_QDRANT =  st.secrets["API_QDRANT"]
 
 y = yadisk.YaDisk(token=API_DISK)
