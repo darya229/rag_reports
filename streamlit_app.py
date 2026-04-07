@@ -509,14 +509,14 @@ if user_input:
             temp_message = st.empty()
             temp_message.write("⏳ Добавляю ссылки...")
 
-        answer = process_text_with_refs(answer_raw["messages"][-1].content, reranked_snippets_df)
+        # answer = process_text_with_refs(answer_raw["messages"][-1].content, reranked_snippets_df)
 
         with st.chat_message("assistant", avatar=":material/android:"):
             temp_message = st.empty()
             temp_message.write("✅ Ответ готов")
         # Показываем ответ
         with st.chat_message("assistant", avatar=":material/android:"):
-            st.markdown(answer, unsafe_allow_html=True)
+            st.markdown(answer_raw["messages"][-1].content, unsafe_allow_html=True)
         reset_data()
 
 
