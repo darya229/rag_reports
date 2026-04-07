@@ -325,7 +325,7 @@ def rag(user_query: str,
         return "Nothing found"
     
     else:
-        llm_response= deepseek_llm.invoke(
+        llm_response= deepseek_llm_assistant.invoke(
         [
             HumanMessage(content=retrieve_result.loc[0, "Промпт"])
         ])
@@ -338,7 +338,7 @@ def current_date():
 
 tool_limit_middleware = ToolCallLimitMiddleware(
     tool_name="rag",  # Укажите имя нужного инструмента
-    run_limit=10,  # Не более 3 вызовов за один запуск
+    run_limit=3,  # Не более 3 вызовов за один запуск
     exit_behavior="continue"  # Как себя вести при превышении лимита
 )
 
