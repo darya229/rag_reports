@@ -133,10 +133,14 @@ def process_text_with_refs(text, df):
     # Создаем словарь для быстрого поиска данных по номеру ссылки
     ref_dict = {}
     for _, row in df.iterrows():
+        try:
+            page_num = int(row['page'])+1
+        except:
+            page_num = " - "
         ref_dict[str(int(row["Позиция чанка"]))] = {
             'href': row["download_link"],
             'file_name': row['file_name'],
-            'page': int(row['page'])+1
+            'page': page_num
         }
     sources = []
     check_added_sources = set()
@@ -342,7 +346,7 @@ tool_limit_middleware = ToolCallLimitMiddleware(
 st.subheader("RAG search agent (demo)")
 with st.expander("Информация о базе данных"):
     st.write("Количесво документов в базе: 6275")
-    st.write("Дата выпуска документов: 01.01.2026 — 01.03.2026")
+    st.write("Дата выпуска документов: 01.01.2026 — 31.03.2026")
     st.write("Тематика документов:")
     categories_list = """categories_list = [
     'Автопром',
