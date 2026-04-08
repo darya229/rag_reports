@@ -338,7 +338,7 @@ def current_date():
 
 tool_limit_middleware = ToolCallLimitMiddleware(
     tool_name="rag",  # Укажите имя нужного инструмента
-    run_limit=3,  # Не более 3 вызовов за один запуск
+    run_limit=10,  # Не более 3 вызовов за один запуск
     exit_behavior="continue"  # Как себя вести при превышении лимита
 )
 
