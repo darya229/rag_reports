@@ -388,7 +388,7 @@ def retrieve_chunks(query: str,
                             pass
 
         ##### подставляем таблицы ########
-        rerank_snippets_active = reranked_snippets[:5]
+        rerank_snippets_active = reranked_snippets[:10]
         all_snippets.append(reranked_snippets)
         context = "\n".join([
             f"<snippet {idx + current_reranked_idx  + 1}> {item.payload['page_content']} \n doc_title: {item.payload["metadata"]["file_name"]} \n page: {item.payload["metadata"]["page"]}</snippet {idx + current_reranked_idx + 1}>"
