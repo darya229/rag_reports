@@ -325,7 +325,7 @@ def rag(user_query: str,
         return "Nothing found"
     
     else:
-        llm_response= deepseek_llm_assistant.invoke(
+        llm_response= deepseek_llm.invoke(
         [
             HumanMessage(content=retrieve_result.loc[0, "Промпт"])
         ])
