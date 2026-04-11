@@ -9,8 +9,8 @@ from langfuse.langchain import CallbackHandler
 import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
-API_RAG = os.getenv("API_RAG")
-RAG_URL = os.getenv("RAG_URL")
+API_RAG = st.secrets["API_RAG"]
+RAG_URL = st.secrets["RAG_URL"]
 
 
 
