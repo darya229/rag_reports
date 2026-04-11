@@ -167,8 +167,6 @@ if st.session_state.show_dialog and st.session_state.dialog_query_id is not None
 # chat_input будет внизу
 user_input = st.chat_input('Ваш запрос')
 if user_input:
-    st.write("User input")
-    st.code(st.session_state)
     # Добавляем сообщение пользователя в историю
     st.session_state.messages.append({"role": "user", "text": user_input})
     st.session_state.query_count += 1
