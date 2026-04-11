@@ -4,8 +4,6 @@ import asyncio
 import requests
 import nest_asyncio
 from googletrans import Translator
-from langfuse.langchain import CallbackHandler
-
 import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
