@@ -98,7 +98,7 @@ if 'current_reranked_idx' not in st.session_state:
 st.subheader("RAG search agent (demo)")
 with st.expander("Информация о базе данных"):
     st.write("Количесво документов в базе: 6275")
-    st.write("Дата выпуска документов: 01.01.2026 — 01.03.2026")
+    st.write("Дата выпуска документов: 01.01.2026 — 31.03.2026")
     st.write("Тематика документов:")
     categories_list = """categories_list = [
     'Автопром',
