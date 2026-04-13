@@ -332,5 +332,5 @@ if user_input:
         })
         
     except Exception as e:
-        st.error(f"Ошибка при работе LLM: {e}")
+        st.error(f"Ошибка сервера: {e}")
         raise
