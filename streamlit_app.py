@@ -206,7 +206,7 @@ if user_input:
             temp_message.write("✅Ответ готов")  
         with st.chat_message("assistant", avatar=":material/android:"):
             with st.expander("Нажми сюда, чтобы узнать мою логику построения ответа"):
-                st.json(llm_response["processing_info"], expanded=7)
+                st.json(llm_response["processing_info"], expanded=False)
             
             st.markdown(llm_response["agent_answer"], unsafe_allow_html=True)
 
