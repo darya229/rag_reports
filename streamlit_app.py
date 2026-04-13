@@ -206,7 +206,7 @@ if user_input:
             temp_message.write("✅Ответ готов")  
         with st.chat_message("assistant", avatar=":material/android:"):
             with st.expander("Нажми сюда, чтобы узнать мою логику построения ответа"):
-                st.json(llm_response["processing_info"], expanded=3)
+                st.json(llm_response["processing_info"], expanded=7)
             
             st.markdown(llm_response["agent_answer"], unsafe_allow_html=True)
 
@@ -220,5 +220,5 @@ if user_input:
         })
         
     except Exception as e:
-        st.error(f"Ошибка при работе LLM: {e}")
+        st.error(f"500. Ошибка сервера: {e}")
         raise
