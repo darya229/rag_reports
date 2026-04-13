@@ -140,7 +140,7 @@ for i, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"], avatar=avatar):
         if 'steps_logic' in message:
             with st.expander("Нажми сюда, чтобы узнать мою логику построения ответа"):
-                st.json(message['steps_logic'], expanded=3)
+                st.json(message['steps_logic'], expanded=2)
         if 'text' in message:
             st.markdown(message['text'], unsafe_allow_html=True)
 
@@ -206,7 +206,7 @@ if user_input:
             temp_message.write("✅Ответ готов")  
         with st.chat_message("assistant", avatar=":material/android:"):
             with st.expander("Нажми сюда, чтобы узнать мою логику построения ответа"):
-                st.json(llm_response["processing_info"], expanded=False)
+                st.json(llm_response["processing_info"], expanded=2)
             
             st.markdown(llm_response["agent_answer"], unsafe_allow_html=True)
 
