@@ -19,3 +19,7 @@ yadisk
 langfuse
 langchain
 torchvision
+paramiko
+streamlit-cookies-manager
+streamlit-extras
+deep-translator

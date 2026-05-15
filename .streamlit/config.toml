@@ -1,2 +1,48 @@
+[server]
+enableStaticServing = true
+
 [theme]
-base = "light"
+base = "dark"
+primaryColor = "#1ED760"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#e1e1e1"
+textColor = "#2f2f2f"
+linkColor = "#9D9D9D"
+borderColor = "#7F7F7F"
+showWidgetBorder = false
+baseRadius = "0.3rem"
+font = "Montserrat, sans-serif"
+headingFontSizes = ["39.5px", "32px", "24px"]
+headingFontWeights = [900, 700, 700]
+buttonRadius = "full"
+
+[theme.sidebar]
+backgroundColor = "#e1e1e1"
+secondaryBackgroundColor = "#e1e1e1"
+borderColor = "#696969"
+
+
+[[theme.fontFaces]]
+url = "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+family = "Montserrat, sans-serif"
+weight = 300
+
+[[theme.fontFaces]]
+url = "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+family = "Montserrat, sans-serif"
+weight = 400
+
+[[theme.fontFaces]]
+url = "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+family = "Montserrat, sans-serif"
+weight = 500
+
+[[theme.fontFaces]]
+url = "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+family = "Montserrat, sans-serif"
+weight = 700
+
+[[theme.fontFaces]]
+url = "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+family = "Montserrat, sans-serif"
+weight = 900
