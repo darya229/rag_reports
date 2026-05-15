@@ -193,7 +193,7 @@ print(f"FRONT PAGE STATE: {st.session_state}")
 with st.container():
     col1, col2 = st.columns(2, vertical_alignment='center')
     with col1: 
-        st.image("pages\search_logo.gif")
+        st.image("pages/search_logo.gif")
     with col2:
         st.markdown(
 
