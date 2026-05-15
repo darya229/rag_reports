@@ -44,7 +44,7 @@ if check_admin(st.session_state) == True:
     # st.write("Current cookies:", cookies)
     # st.write("Current session_state:", st.session_state)
 
-    st.title('Текущее состояние системы')
+    st.title('RAG search agent (demo)')
 
 
     admin_panel(state="request")
@@ -120,7 +120,7 @@ if check_admin(st.session_state) == True:
 
 
     # st.subheader("❗️ база данных содержит 6275 документов за период 01.01.2026 — 01.03.2026")
-    st.subheader("RAG search agent (demo)")
+
     with st.expander("Информация о базе данных"):
         st.write("Количесво документов в базе: 6275")
         st.write("Дата выпуска документов: 01.01.2026 — 01.03.2026")
